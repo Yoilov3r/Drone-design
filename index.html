@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="X9 工业四旋翼无人机三维结构查看与飞行仿真"
+    />
+    <meta name="theme-color" content="#0b0d0e" />
+    <title>X9 / 工业四旋翼</title>
+  </head>
+  <body>
+    <div id="app">
+      <div id="webgl" aria-label="X9 工业四旋翼三维视图"></div>
+      <div class="stage-grid" aria-hidden="true"></div>
+
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">
+            <svg viewBox="0 0 32 32" aria-hidden="true">
+              <path d="M5 10.5 16 4l11 6.5v11L16 28 5 21.5z" />
+              <path d="M10 13.2 16 9.7l6 3.5v5.6l-6 3.5-6-3.5z" />
+              <circle cx="16" cy="16" r="2.1" />
+            </svg>
+          </span>
+          <div class="brand-copy">
+            <span class="brand-name">AEROSCOPE</span>
+            <span class="brand-sub">FLIGHT SYSTEMS LAB</span>
+          </div>
+        </div>
+
+        <div class="model-id">
+          <span>X9 / INDUSTRIAL QUAD</span>
+          <b>01</b>
+        </div>
+
+        <div class="live-state">
+          <span class="live-dot"></span>
+          <span>实时仿真</span>
+          <b id="flight-state">待机</b>
+        </div>
+      </header>
+
+      <nav class="view-modes" aria-label="视图模式">
+        <button class="view-mode is-active" data-view="flight" title="飞行视图">
+          <i data-lucide="orbit"></i>
+          <span>飞行</span>
+        </button>
+        <button class="view-mode" data-view="exploded" title="爆炸视图">
+          <i data-lucide="boxes"></i>
+          <span>爆炸</span>
+        </button>
+        <button class="view-mode" data-view="cut" title="剖切视图">
+          <i data-lucide="scissors"></i>
+          <span>剖切</span>
+        </button>
+        <button class="view-mode" data-view="sensor" title="感知视图">
+          <i data-lucide="scan-line"></i>
+          <span>感知</span>
+        </button>
+      </nav>
+
+      <section class="parts-panel" aria-label="部件索引">
+        <div class="panel-title">
+          <span>部件索引</span>
+          <b>07</b>
+        </div>
+        <div class="parts-list">
+          <button class="part-row is-active" data-part="airframe">
+            <span class="part-number">01</span>
+            <span class="part-copy"><b>机身与折叠臂</b><small>碳纤维承力结构</small></span>
+            <span class="part-dot"></span>
+          </button>
+          <button class="part-row" data-part="battery">
+            <span class="part-number">02</span>
+            <span class="part-copy"><b>双电池仓</b><small>热插拔能源系统</small></span>
+            <span class="part-dot"></span>
+          </button>
+          <button class="part-row" data-part="avionics">
+            <span class="part-number">03</span>
+            <span class="part-copy"><b>飞控与计算</b><small>IMU / 任务计算机</small></span>
+            <span class="part-dot"></span>
+          </button>
+          <button class="part-row" data-part="rtk">
+            <span class="part-number">04</span>
+            <span class="part-copy"><b>RTK 天线</b><small>高精度定位链路</small></span>
+            <span class="part-dot"></span>
+          </button>
+          <button class="part-row" data-part="motor">
+            <span class="part-number">05</span>
+            <span class="part-copy"><b>动力单元</b><small>无刷电机 / 21 in 桨</small></span>
+            <span class="part-dot"></span>
+          </button>
+          <button class="part-row" data-part="gimbal">
+            <span class="part-number">06</span>
+            <span class="part-copy"><b>增稳云台</b><small>三轴机械增稳</small></span>
+            <span class="part-dot"></span>
+          </button>
+          <button class="part-row" data-part="vision">
+            <span class="part-number">07</span>
+            <span class="part-copy"><b>六向感知</b><small>视觉与激光雷达</small></span>
+            <span class="part-dot"></span>
+          </button>
+        </div>
+        <button class="reset-view" id="reset-view" title="返回整机视图">
+          <i data-lucide="maximize-2"></i>
+          <span>整机视图</span>
+        </button>
+      </section>
+
+      <aside class="telemetry-panel" aria-label="实时遥测">
+        <div class="panel-title">
+          <span>飞行遥测</span>
+          <b id="telemetry-rate">250 HZ</b>
+        </div>
+
+        <div class="primary-metrics">
+          <div class="metric metric-large">
+            <span>高度 AGL</span>
+            <strong><em id="altitude">0.35</em><small>m</small></strong>
+          </div>
+          <div class="metric">
+            <span>速度</span>
+            <strong><em id="speed">0.00</em><small>m/s</small></strong>
+          </div>
+        </div>
+
+        <div class="attitude-strip">
+          <div>
+            <span>俯仰</span>
+            <b id="pitch">0.0°</b>
+          </div>
+          <div>
+            <span>横滚</span>
+            <b id="roll">0.0°</b>
+          </div>
+          <div>
+            <span>风扰</span>
+            <b id="wind-speed">0.0</b>
+          </div>
+        </div>
+
+        <div class="motor-section">
+          <div class="section-label">
+            <span>ROTOR RPM</span>
+            <b id="thrust-total">0.0 kgf</b>
+          </div>
+          <div class="motor-row">
+            <span>FR</span><i><b id="bar-0"></b></i><em id="rpm-0">0</em>
+          </div>
+          <div class="motor-row">
+            <span>RL</span><i><b id="bar-1"></b></i><em id="rpm-1">0</em>
+          </div>
+          <div class="motor-row">
+            <span>FL</span><i><b id="bar-2"></b></i><em id="rpm-2">0</em>
+          </div>
+          <div class="motor-row">
+            <span>RR</span><i><b id="bar-3"></b></i><em id="rpm-3">0</em>
+          </div>
+        </div>
+
+        <div class="energy-section">
+          <div class="energy-head">
+            <span>双电池能量</span>
+            <b><i data-lucide="battery-medium"></i><em id="battery-level">100</em>%</b>
+          </div>
+          <div class="energy-track"><b id="energy-bar"></b></div>
+          <div class="energy-foot">
+            <span>轴功率</span>
+            <b><em id="power">0</em> W</b>
+          </div>
+        </div>
+
+        <div class="physics-note">
+          <span>RIGID BODY</span>
+          <span>MOMENTUM THEORY</span>
+          <span>4 MS</span>
+        </div>
+      </aside>
+
+      <div class="viewport-meta">
+        <span>1:1 SCALE</span>
+        <span>SI UNITS</span>
+        <span>WEBGL / PBR</span>
+      </div>
+
+      <div class="hotspots" id="hotspots" aria-label="部件热点">
+        <button class="hotspot" data-part="rtk">
+          <span class="hotspot-ring"></span><b>RTK</b>
+        </button>
+        <button class="hotspot" data-part="battery">
+          <span class="hotspot-ring"></span><b>双电池</b>
+        </button>
+        <button class="hotspot" data-part="gimbal">
+          <span class="hotspot-ring"></span><b>三轴云台</b>
+        </button>
+        <button class="hotspot" data-part="motor">
+          <span class="hotspot-ring"></span><b>21 in 桨</b>
+        </button>
+      </div>
+
+      <div class="part-toast" id="part-toast" aria-live="polite">
+        <div>
+          <span id="toast-index">01 / AIRFRAME</span>
+          <strong id="toast-title">机身与折叠臂</strong>
+        </div>
+        <p id="toast-copy">0.9 m 对角轴距 · 碳纤维折叠臂</p>
+      </div>
+
+      <footer class="control-deck">
+        <div class="transport">
+          <button class="transport-button" id="play-toggle" title="播放或暂停飞行演示">
+            <i data-lucide="pause"></i>
+          </button>
+          <div class="timeline-wrap">
+            <div class="timeline-meta">
+              <span id="flight-phase">陆上待机</span>
+              <b><em id="timeline-current">00:00</em> / 00:28</b>
+            </div>
+            <div class="timeline">
+              <input id="timeline" type="range" min="0" max="28" step="0.01" value="0" aria-label="飞行进度" />
+              <div class="timeline-marks" aria-hidden="true">
+                <i></i><i></i><i></i><i></i><i></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="wind-control">
+          <div class="control-label"><i data-lucide="wind"></i><span>风场</span></div>
+          <div class="segmented" id="wind-modes">
+            <button class="is-active" data-wind="calm">无风</button>
+            <button data-wind="wind">8 m/s</button>
+            <button data-wind="gust">阵风</button>
+          </div>
+        </div>
+
+        <div class="explode-control">
+          <div class="control-label">
+            <i data-lucide="layers"></i><span>爆炸系数</span>
+            <b id="explode-value">0%</b>
+          </div>
+          <input id="explode-range" type="range" min="0" max="1" step="0.01" value="0" aria-label="爆炸视图系数" />
+        </div>
+
+        <div class="deck-actions">
+          <button class="deck-action" id="cut-toggle" title="切换剖切视图">
+            <i data-lucide="scissors"></i><span>剖切</span>
+          </button>
+          <button class="deck-action" id="camera-reset" title="重置镜头">
+            <i data-lucide="rotate-ccw"></i><span>镜头</span>
+          </button>
+          <button class="deck-action accent" id="flight-reset" title="重置飞行状态">
+            <i data-lucide="power"></i><span>复位</span>
+          </button>
+        </div>
+      </footer>
+
+      <div class="loader" id="loader">
+        <span class="loader-mark"></span>
+        <div><b>X9</b><small>BUILDING AIRFRAME</small></div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
